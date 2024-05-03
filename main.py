@@ -2,67 +2,122 @@
 
 Author:         Beyza Cakir
 Date:           05/02/24
-Assignment:     RPG 
+Assignment:     RPG
 Course:         CPSC1050
 Lab Section:    001
 
 
-CODE DESCRIPTION: 
-Culinary Chaos is role play game where the player can choose a cooking role and navigate the chaotic world of cooking. The goal is for the player to maximize the kitchen's success rate.
+CODE DESCRIPTION:
+Culinary Chaos is role play game where the player switches between Chef and SousChef navigate the chaotic world of cooking. The goal is for the player to maximize the kitchen's success rate.
 
 '''
 
 import random
 import os
 
+class Inventory:
+    def __init__(self):
+        # Player has full inventory -- 50 of each ingredient
+        self.items = {
+            "Flour": 50,
+            "Eggs": 30,
+            "Milk": 20,
+            "Vegetables": 40,
+            "Meat": 25
+        }
+        # Player has 0 dishes ready to cook initially
+        self.dishesReadyToCook = {
+            "Spaghetti Bolognese": 0,
+            "Chicken Curry": 0,
+            "Vegetable Stir-Fry": 0,
+            "Beef Lasagna": 0,
+            "Grilled Salmon": 0
+        }
+        # Player has 0 dishes ready to serve initially
+        self.dishesReadyToServe = {
+            "Spaghetti Bolognese": 0,
+            "Chicken Curry": 0,
+            "Vegetable Stir-Fry": 0,
+            "Beef Lasagna": 0,
+            "Grilled Salmon": 0
+        }
+        # Player has 5 clean plates initially
+        self.clean_dishes = 5
 
-class Chef:
-    # This class represents a chef role in the game
-    def __init__(self, name, skill_level):
-        # Initializes chef object with name and skill level
+    def update(self, ingredients_used):
+        for item, quantity in ingredients_used.items():
+            if self.items[item] >= quantity:
+                self.items[item] -= quantity
+            else:
+                print(f"Not enough {item} in the inventory. Unable to prepare the dish.")
+
+    def restock(self, item, quantity):
+        self.items[item] = quantity
+
+    def check_availability(self, ingredients_needed):
+        for item, quantity in ingredients_needed.items():
+            if self.items[item] < quantity:
+                return False
+        return True
+
+    def get_string_representation(self):
+        return str(self.items)
+
+class Dish:
+    def __init__(self, name, ingredients_needed, minimum_skill_level):
+        # Initializes dish object with name and skill level
         self.name = name
+        self.ingredients_needed = ingredients_needed
+        self.minimum_skill_level = minimum_skill_level
+
+    def checkIfPlayerCanCook(self, player):
+        # Checks if the player can cook the dish
+        if player.skill_level >= self.minimum_skill_level:
+            return True
+        else:
+            print(f"{player.name} does not have the required skill level to cook this dish.")
+            return False
+
+class BaseCook:
+    def __init__(self, name, skill_level):
+        self.name = name
+        self.inventory = Inventory()
         self.skill_level = skill_level
 
-        self.inventory = {
-                "Flour": 50,
-                "Eggs": 30,
-                "Milk": 20,
-                "Vegetables": 40,
-                "Meat": 25
-            }
-
-        def prepare_ingredients(self):
-            # Player is preparing the ingredients for the dish
-            print(f'{self.name} is preparing the ingredients.')
-            self.update_inventory()
-
-        def update_inventory(self):
-            # Update the inventory based on the ingredients used
-            ingredients_used = {
-                "Flour": 2,
-                "Eggs": 3,
-                "Milk": 1,
-                "Vegetables": 5,
-                "Meat": 1
-            }
-
-            for item, quantity in ingredients_used.items():
-                if self.inventory[item] >= quantity:
-                    self.inventory[item] -= quantity
-                    print(f"Used {quantity} {item} from the inventory.")
-                else:
-                    print(f"Not enough {item} in the inventory. Unable to prepare the dish.")
-                    return
-
-            print("All ingredients have been prepared.")
-
-
-    def cook_dish(self, dish):
-        # Player is cooking a dish of their choice
-        dishes = ["Spaghetti Bolognese", "Chicken Curry", "Vegetable Stir-Fry", "Beef Lasagna", "Grilled Salmon"]
+    def prepare_ingredients(self, dishes):
+        # Select a Dish
         print("\nAvailable dishes:")
         for i, dish in enumerate(dishes, start=1):
-            print(f"{i}. {dish}")
+            print(f"{i}. {dish.name}")
+        print()
+
+        dish = None
+        while True:
+            user_choice = int(input("What dish would you like to prepare the ingredients for out of the list?\n"))
+            if user_choice < 1 or user_choice > 5:
+                print("Sorry, that dish is not on the list. Please choose from the available dishes:")
+                for dish in dishes:
+                    print("- " + dish)
+            else:
+                dish = dishes[user_choice - 1]
+                print(f"Great, you've chosen to prepare the ingredients for {dish.name}!")
+                break
+
+        # Player is preparing the ingredients for the dish
+        print(f'{self.name} is preparing the ingredients.')
+
+        if self.inventory.check_availability(dish.ingredients_needed):
+            self.inventory.update(dish.ingredients_needed)
+            self.inventory.dishesReadyToCook[dish.name] += 1
+            print("All ingredients have been prepared.")
+        else:
+            print("Not enough ingredients in the inventory. Unable to prepare the dish.")
+
+    def cook_dish(self, dishes):
+        # Player is cooking a dish of their choice
+        print("\nAvailable dishes:")
+        for i, dish in enumerate(dishes, start=1):
+            print(f"{i}. {dish.name}")
         print()
 
         while True:
@@ -71,233 +126,146 @@ class Chef:
                 print("Sorry, that dish is not on the list. Please choose from the available dishes:")
                 for dish in dishes:
                     print("- " + dish)
-            else:
-                print(f"Great, you've chosen to cook {dishes[user_choice - 1]}!")
-                print(f"{self.name} is cooking {dishes[user_choice - 1]}.")
+            elif dishes[user_choice - 1].checkIfPlayerCanCook(self) == True and self.inventory.dishesReadyToCook[dishes[user_choice - 1].name] > 0:
+                print(f"Great, you've chosen to cook {dishes[user_choice - 1].name}!")
+                print(f"{self.name} is cooking {dishes[user_choice - 1].name}.")
+                self.inventory.dishesReadyToCook[dishes[user_choice - 1].name] -= 1
+                self.inventory.dishesReadyToServe[dishes[user_choice - 1].name] += 1
                 break
-                    
-    def plate_dish(self, dish):
-        # Player is putting the prepared food on a plate
-        print(f'{self.name} is plating cuisine.')
+            else:
+                print("Sorry, you can't cook this dish because you lack the skill or prepared ingredients.")
+                break
 
+class Chef(BaseCook):
+    # This class represents a chef role in the game
+    def __init__(self, name):
+        # Chef has skill level of 5/5
+        super().__init__(name, 5)
 
-class SousChef(Chef):
-    # This class represents a SousChef role in the game
-    def __init__(self, name, skill_level):
-        super().__init__(name, skill_level)
-        self.inventory = {
-            "Flour": 50,
-            "Eggs": 30,
-            "Milk": 20,
-            "Vegetables": 40,
-            "Meat": 25
-        }
+    # Only the Chef can serve a dish
+    def serve_dish(self, dishes):
+        # Select a Dish
+        print("\nAvailable dishes:")
+        for i, dish in enumerate(dishes, start=1):
+            print(f"{i}. {dish.name}")
+        print()
 
-    def assist_chef(self, chef):
-        # Player gets help from another player
-        print(f'{self.name} is assisting Gordon Ramsey.')
+        dish = None
+        while True:
+            user_choice = int(input("What dish would you like to serve out of the list?\n"))
+            if user_choice < 1 or user_choice > 5:
+                print("Sorry, that dish is not on the list. Please choose from the available dishes:")
+                for dish in dishes:
+                    print("- " + dish)
+            else:
+                dish = dishes[user_choice - 1]
+                break
 
-    def manage_inventory(self):
-        # Player is managing the kitchen inventory
-        print(f'{self.name} is managing the kitchen inventory.')
-        low_inventory = [item for item, quantity in self.inventory.items() if quantity < 10]
-        if low_inventory:
-            print("The following inventory items are running low:")
-            for item in low_inventory:
-                print(f"- {item}")
-            print("Restocking the inventory...")
-            self.restock_inventory()
+        if self.inventory.dishesReadyToServe[dish.name] > 0:
+            if self.inventory.clean_dishes == 0:
+                print("There are no clean plates. Unable to serve the dish.")
+            else:
+                print(f"{self.name} is serving {dish.name}.")
+                self.inventory.dishesReadyToServe[dish.name] -= 1
+                self.inventory.clean_dishes -= 1
         else:
-            print("The kitchen inventory is in good shape.")
+            print(f"{self.name} does not have any {dish.name} to serve.")
 
+class SousChef(BaseCook):
+    # This class represents a chef role in the game
+    def __init__(self, name):
+        # SousChef has a skill level of 3/5
+        super().__init__(name, 3)
 
-    def coordinate_team(self, team):
-        # Player forms the team
-        print(f'{self.name} is coordinating the team.')
-
-class Expediter(Chef):
-    def __init__(self, name, skill_level):
-        super().__init__(name, skill_level)
-
-    def prioritize_orders(self, orders):
-        # Player is prioritizing orders
-        print(f'{self.name} is prioritizing the orders by making sure the other chefs are cooking.')
-
-    def monitor_progress(self, team):
-        # Player monitors the team progress
-        print(f'{self.name} is monitoring the team\'s progress.')
-        print(f'Progress level is at 100%')
-        
-
-    def communicate_status(self, team):
-        # Player communicates the status to the team
-        print(f'{self.name} is communicating the team\'s status.')
-        print('Gordon Ramsey and his minion chefs report that the kitchen is on a 100% success rate')
-
-
-class Dishwasher(Chef):
-    def __init__(self, name, skill_level):
-        super().__init__(name, skill_level)
-        self.inventory = {
-            "Flour": 50,
-            "Eggs": 30,
-            "Milk": 20,
-            "Vegetables": 40,
-            "Meat": 25
-        }
-
-    def clean_dishes(self):
-        # Player is cleaning dishes
-        print(f'{self.name} is cleaning the dishes.')
-        
-
-    def restock_supplies(self):
-        # Player isrestocking kitchen supplies
-        print(f'{self.name} is restocking the kitchen supplies')
-        for item, quantity in self.inventory.items():
-            if quantity < 50:
-                self.inventory[item] = 50
-                print(f"Restocked {item} to 50.")
-
-
-
-    def support_team(self, team):
-        # Player is supporting the team
-        print(f'{self.name} is supporting the team')
+    # Only the SousChef can clean plates
+    def cleanPlate(self):
+        if self.inventory.clean_dishes > 0:
+            print(f"{self.name} is cleaning a plate.")
+            self.inventory.clean_dishes += 1
+        else:
+            print("There are no dirty plates to clean.")
 
 # Game Functions
-def create_map():
-    # A custom kitchen map is made
-    print('Creating a custom kitchen map.')
-
-def save_game(team, kitchen_state):
-    # The game is being saved the game state
-    print(f'Saving the game state')
-
-def load_game():
-    # The game is loading a saved game
-    print('Loading a saved game')
-
-def output_log(team_performance):
+def output_log(player):
     # An output log is being generated
     print('Generating an ouput log')
 
-def select_character():
-    print('Choose your character:')
+def switch_character(chef, sousChef):
+    print('Which character would you like to switch to:')
     print('   1. Chef')
     print('   2. SousChef')
-    print('   3. Expediter')
-    print('   4. Dishwasher')
 
-
+    current_player_character = 0
     while True:
         try:
-            choice = int(input(f'Enter your choice (1-4):\n'))
-            if 1 <= choice <= 4:
-                return choice
+            choice = int(input(f'Enter your choice (1-2):\n'))
+            if 1 <= choice <= 2:
+                current_player_character = choice
+                break
             else:
                 print(f'Invalid choice. Please try again.')
         except ValueError:
             print(f'Invalid input. Please enter a number')
 
-
+    if current_player_character == 1:
+        print(f'You are a Chef now!\n')
+        return chef
+    elif current_player_character == 2:
+        print(f'You are a SousChef now!\n')
+        return sousChef
 
 def main():
+    dishes = [
+        Dish("Spaghetti Bolognese", {"Flour": 2, "Eggs": 3, "Milk": 1, "Vegetables": 3, "Meat": 3}, 4),
+        Dish("Chicken Curry", {"Flour": 0, "Eggs": 3, "Milk": 1, "Vegetables": 5, "Meat": 1}, 2),
+        Dish("Vegetable Stir-Fry", {"Flour": 2, "Eggs": 3, "Milk": 1, "Vegetables": 5, "Meat": 0}, 4),
+        Dish("Beef Lasagna", {"Flour": 5, "Eggs": 1, "Milk": 0, "Vegetables": 5, "Meat": 4}, 5),
+        Dish("Grilled Salmon", {"Flour": 2, "Eggs": 3, "Milk": 1, "Vegetables": 5, "Meat": 1}, 2)
+    ]
+
     print(f'Welcome to Culinary Chaos')
-    name = input("Enter your name: ").capitalize()
-    # The choice of the player's character is chosen
-    player_character = select_character()
+    name = input("Enter your Chef's name: ").capitalize()
+    chef = Chef(name)
+    name = input("Enter your SousChef's name: ").capitalize()
+    sous_chef = SousChef(name)
 
-    # Player's role is based on the user's choice
-    if player_character == 1:
-        player = Chef(name, 5)
-        print(f'You are a Chef!\n')
-    elif player_character == 2:
-        player = SousChef(name, 5)
-        print(f'You are a SousChef!\n')
-    elif player_character == 3:
-        player = Expediter(name, 5)
-        print(f'You are an Expediter!\n')
-    else:
-        player = Dishwasher(name, 5)
-        print(f'You are a Dishwasher!\n')
+    # Pick current player
+    player = switch_character(chef, sous_chef)
 
-
-    
     while True:
         # Displays game menu
         print('Game Menu: ')
         print('What would you like to do today:')
         print(f'   1. Prepare Ingredients')
         print(f'   2. Cook a Dish')
-        print(f'   3. Plate a Dish')
-        print(f'   4. Manage Inventory')
-        print(f'   5. Assist Chef')
-        print(f'   6. Prioritize Orders')
-        print(f'   7. Monitor Progress')
-        print(f'   8. Communicate Status')
-        print(f'   9. Clean Dishes')
-        print(f'   10. Restock Supplies')
-        print(f'   11. Support Team')
-        print(f'   12. Save Game')
-        print(f'   13. Load Game')
-        print(f'   14. Exit')
+        print(f'   3. Serve a Dish')
+        print(f'   4. Clean Dishes')
+        print(f'   5. Output Game Log')
+        print(f'   6. Switch Player')
+        print(f'   7. Exit')
 
-
-        # Handles user input
         try:
-            choice = int(input('Enter your choice (1-14):\n'))
+            choice = int(input('Enter your choice (1-8):\n'))
             if choice == 1:
-                player.prepare_ingredients()
+                player.prepare_ingredients(dishes)
             elif choice == 2:
-                player.cook_dish('Dish')
+                player.cook_dish(dishes)
             elif choice == 3:
-                player.plate_dish('Dish')
+                if isinstance(player, Chef):
+                    player.serve_dish(dishes)
+                else:
+                    print('Only the Chef can serve a dish.')
             elif choice == 4:
                 if isinstance(player, SousChef):
-                    player.manage_inventory()
+                    player.cleanPlate(self)
                 else:
-                    print('Only the SousChef can manage the inventory.')
+                    print('Only the SousChef can clean dishes.')
             elif choice == 5:
-                if isinstance(player, SousChef):
-                    player.assist_chef(player)
-                else:
-                    print('Only the SousChef can assist the Chef.')
+                output_log(player)
             elif choice == 6:
-                if isinstance(player, Expediter):
-                    player.prioritize_orders(['Order1', 'Order2', 'Order3'])
-                else:
-                    print('Only the Expediter can prioritize orders.')
+                # switch player
+                player = switch_character(chef, sous_chef)
             elif choice == 7:
-                if isinstance(player, Expediter):
-                    player.monitor_progress(['Player1', 'Player2', 'Player3'])
-                else:
-                    print('Only the Expediter can monitor the team\'s progress.')
-            elif choice == 8:
-                if isinstance(player, Expediter):
-                    player.communicate_status(['Player1', 'Player2', 'Player3'])
-                else:
-                    print('Only the Expediter can communicate the team\'s status.')
-            elif choice == 9:
-                if isinstance(player, Dishwasher):
-                    player.clean_dishes()
-                else:
-                    print('Only the Dishwasher can clean the dishes.')
-            elif choice == 10:
-                if isinstance(player, Dishwasher):
-                    player.restock_supplies()
-                else:
-                    print('Only the Dishwasher can restock the kitchen supplies.')
-            elif choice == 11:
-                if isinstance(player, Dishwasher):
-                    player.support_team(['Player1', 'Player2', 'Player3'])
-                else:
-                    print('Only the Dishwasher can support the team.')
-            elif choice == 12:
-                save_game([player], 'kitchen_state')
-            elif choice == 13:
-                load_game()
-            elif choice == 14:
                 print('Exiting the game.')
                 break
             else:
@@ -305,12 +273,5 @@ def main():
         except ValueError:
             print('Invalid input. Please enter a number.')
 
-
-
 if __name__ == "__main__":
      main()
-
-
-
-
-    
